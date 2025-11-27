@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Expense">
+  <meta name="theme-color" content="#000000">
+  <title>Expense Tracker</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; min-height: 100vh; overscroll-behavior: none; -webkit-user-select: none; user-select: none; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+    input, select { -webkit-user-select: text; user-select: text; }
+    ::-webkit-scrollbar { display: none; }
+    .status-bar { height: 48px; background: linear-gradient(to bottom, #111, transparent); }
+    .header { padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .header-title { font-size: 24px; font-weight: 700; background: linear-gradient(to right, #fbbf24, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .header-subtitle { color: #6b7280; font-size: 14px; }
+    .add-btn { width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b, #ea580c); border: none; border-radius: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 10px 25px rgba(249, 115, 22, 0.3); }
+    .add-btn svg { width: 24px; height: 24px; stroke: #000; fill: none; stroke-width: 2; }
+    .main { padding: 0 24px 140px; }
+    .hidden { display: none !important; }
+    .month-selector { overflow-x: auto; padding-bottom: 8px; margin: 0 -24px; padding-left: 24px; padding-right: 24px; }
+    .month-list { display: flex; gap: 8px; min-width: max-content; }
+    .month-btn { padding: 12px 16px; border-radius: 16px; border: 1px solid #374151; background: rgba(17, 24, 39, 0.5); color: #6b7280; font-size: 14px; min-width: 70px; cursor: pointer; transition: all 0.3s; }
+    .month-btn.active { background: linear-gradient(135deg, #f59e0b, #ea580c); color: #000; font-weight: 700; border-color: transparent; }
+    .month-btn.has-data { background: #1f2937; color: #fff; border-color: #374151; }
+    .month-btn-sub { font-size: 11px; margin-top: 4px; opacity: 0.7; }
+    .summary { text-align: center; padding: 24px 0; }
+    .summary-label { color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+    .summary-amount { font-size: 48px; font-weight: 700; background: linear-gradient(to right, #fbbf24, #f97316, #f43f5e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .expense-list { display: flex; flex-direction: column; gap: 12px; }
+    .expense-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: rgba(17, 24, 39, 0.5); border: 1px solid #1f2937; border-radius: 16px; }
+    .expense-item-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+    .expense-item-name { color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .delete-btn { width: 32px; height: 32px; background: transparent; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .delete-btn svg { width: 16px; height: 16px; stroke: #f87171; fill: none; stroke-width: 2; }
+    .delete-btn:active { background: rgba(239, 68, 68, 0.2); }
+    .expense-input { width: 100px; text-align: right; background: transparent; border: none; color: #fbbf24; font-family: ui-monospace, monospace; font-size: 18px; padding: 4px 8px; border-radius: 8px; }
+    .expense-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.5); }
+    .add-item-btn { width: 100%; padding: 16px; border: 2px dashed #374151; border-radius: 16px; background: transparent; color: #6b7280; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.3s; margin-top: 12px; font-size: 16px; }
+    .add-item-btn:active { color: #fbbf24; border-color: rgba(245, 158, 11, 0.5); }
+    .add-item-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .check-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-radius: 16px; cursor: pointer; transition: all 0.3s; border: 1px solid #1f2937; background: rgba(17, 24, 39, 0.5); margin-bottom: 8px; }
+    .check-item.checked { background: linear-gradient(to right, rgba(6, 78, 59, 0.4), rgba(6, 78, 59, 0.2)); border-color: rgba(4, 120, 87, 0.3); }
+    .check-item-left { display: flex; align-items: center; gap: 16px; }
+    .checkbox { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #4b5563; display: flex; align-items: center; justify-content: center; transition: all 0.3s; flex-shrink: 0; }
+    .checkbox.checked { background: linear-gradient(135deg, #fbbf24, #f97316); border-color: transparent; }
+    .checkbox svg { width: 16px; height: 16px; stroke: #000; stroke-width: 3; fill: none; }
+    .check-item-text { font-size: 16px; color: #fff; }
+    .check-item.checked .check-item-text { color: #9ca3af; text-decoration: line-through; }
+    .check-item-amount { font-family: ui-monospace, monospace; font-size: 18px; color: #fbbf24; }
+    .check-item.checked .check-item-amount { color: #34d399; }
+    .installment-section { margin-bottom: 32px; }
+    .installment-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .installment-info { flex: 1; }
+    .installment-title { font-size: 20px; font-weight: 700; color: #fff; }
+    .installment-subtitle { color: #fbbf24; font-family: ui-monospace, monospace; font-size: 14px; }
+    .installment-right { display: flex; align-items: center; gap: 12px; }
+    .progress-box { text-align: center; }
+    .progress-text { font-size: 24px; font-weight: 700; color: #34d399; }
+    .progress-label { color: #6b7280; font-size: 12px; }
+    .summary-card { background: linear-gradient(135deg, #111827, #030712); border-radius: 24px; padding: 24px; border: 1px solid #1f2937; margin-bottom: 16px; }
+    .summary-card-label { color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+    .summary-card-amount { font-size: 24px; font-weight: 700; background: linear-gradient(to right, #fbbf24, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .summary-card-amount.green { background: linear-gradient(to right, #34d399, #14b8a6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .summary-card-sub { color: #4b5563; font-size: 14px; margin-top: 8px; }
+    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .card-grid .summary-card { margin-bottom: 0; }
+    .trip-header { text-align: center; padding: 16px 0; }
+    .trip-title { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .trip-date { color: #6b7280; }
+    .trip-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .trip-label { color: #9ca3af; }
+    .trip-value { color: #fff; }
+    .trip-badge { padding: 4px 12px; border-radius: 9999px; font-size: 14px; }
+    .trip-badge.pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .trip-badge.done { background: rgba(52, 211, 153, 0.2); color: #34d399; }
+    .trip-divider { border-top: 1px solid #1f2937; margin-top: 16px; padding-top: 16px; }
+    .trip-total { display: flex; justify-content: space-between; align-items: center; }
+    .trip-total-label { color: #9ca3af; }
+    .trip-total-amount { font-size: 24px; font-weight: 700; color: #fbbf24; }
+    .card-item { padding: 16px; background: rgba(17, 24, 39, 0.5); border: 1px solid #1f2937; border-radius: 16px; margin-bottom: 12px; }
+    .card-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .card-item-name { color: #fff; font-weight: 500; }
+    .card-item-amount { color: #fbbf24; font-family: ui-monospace, monospace; font-weight: 700; }
+    .card-item-detail { color: #6b7280; font-size: 14px; font-family: ui-monospace, monospace; }
+    
+    .card-section { background: linear-gradient(135deg, #111827, #0a0a0a); border-radius: 24px; border: 1px solid #1f2937; margin-bottom: 16px; overflow: hidden; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid #1f2937; }
+    .card-header-left { flex: 1; }
+    .card-title { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .card-subtitle { color: #6b7280; font-size: 14px; }
+    .card-header-right { display: flex; align-items: center; gap: 12px; }
+    .card-header-total { font-size: 24px; font-weight: 700; color: #fbbf24; }
+    .card-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid rgba(31, 41, 55, 0.5); }
+    .card-row:last-of-type { border-bottom: none; }
+    .card-row-left { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .card-row-date { width: 44px; height: 44px; background: #f59e0b; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
+    .card-row-date.empty { background: transparent; }
+    .date-label { font-size: 10px; color: #000; font-weight: 500; }
+    .date-num { font-size: 18px; color: #000; font-weight: 700; line-height: 1; }
+    .card-row-name { color: #fff; font-size: 16px; }
+    .card-row-note { color: #6b7280; font-size: 12px; display: block; }
+    .card-row-right { display: flex; align-items: center; gap: 8px; }
+    .card-input { width: 90px; text-align: right; background: transparent; border: none; color: #fbbf24; font-family: ui-monospace, monospace; font-size: 18px; padding: 4px 8px; }
+    .card-input:focus { outline: none; }
+    .card-total { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: rgba(0,0,0,0.3); }
+    .card-total-label { color: #9ca3af; font-size: 14px; }
+    .card-total-amount { font-size: 24px; font-weight: 700; color: #fbbf24; }
+    .delete-btn.small { width: 28px; height: 28px; }
+    .delete-btn.small svg { width: 14px; height: 14px; }
+    .add-item-btn.small { width: 100%; padding: 14px; border: none; border-radius: 0; background: transparent; color: #fbbf24; font-size: 14px; border-top: 1px solid #1f2937; margin-top: 0; }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, #000, rgba(3, 7, 18, 0.95), transparent); padding: 32px 16px 32px; }
+    .nav-container { display: flex; justify-content: space-around; align-items: flex-end; max-width: 512px; margin: 0 auto; background: rgba(17, 24, 39, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 24px; border: 1px solid #1f2937; }
+    .nav-btn { flex: 1; padding: 16px 8px; text-align: center; background: transparent; border: none; cursor: pointer; position: relative; transition: all 0.3s; color: #6b7280; }
+    .nav-btn.active { color: #fbbf24; }
+    .nav-icon { font-size: 24px; margin-bottom: 4px; }
+    .nav-label { font-size: 12px; font-weight: 500; letter-spacing: 0.5px; }
+    .nav-indicator { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 48px; height: 4px; background: linear-gradient(to right, #f59e0b, #f97316); border-radius: 9999px; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; align-items: flex-end; justify-content: center; z-index: 50; }
+    .modal-overlay.center { align-items: center; padding: 24px; }
+    .modal { background: #111827; border-radius: 24px 24px 0 0; width: 100%; max-width: 512px; padding: 24px 24px 40px; border-top: 1px solid #1f2937; }
+    .modal.center { border-radius: 24px; padding: 24px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .modal-title { font-size: 20px; font-weight: 700; color: #fff; }
+    .modal-close { width: 40px; height: 40px; background: #1f2937; border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .modal-close svg { width: 20px; height: 20px; stroke: #9ca3af; fill: none; stroke-width: 2; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .modal-option { padding: 24px; background: #1f2937; border: none; border-radius: 16px; text-align: center; cursor: pointer; }
+    .modal-option:active { background: #374151; }
+    .modal-option-icon { font-size: 32px; margin-bottom: 8px; }
+    .modal-option-text { color: #fff; font-size: 14px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; color: #9ca3af; font-size: 14px; margin-bottom: 8px; }
+    .form-input { width: 100%; padding: 16px; background: #1f2937; border: none; border-radius: 16px; color: #fff; font-size: 16px; }
+    .form-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.5); }
+    .form-hint { color: #6b7280; font-size: 14px; margin-top: 8px; }
+    .form-submit { width: 100%; padding: 16px; background: linear-gradient(to right, #f59e0b, #ea580c); border: none; border-radius: 16px; color: #000; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 16px; }
+    .form-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    .confirm-text { color: #9ca3af; margin-bottom: 24px; font-size: 16px; }
+    .confirm-buttons { display: flex; gap: 12px; }
+    .confirm-btn { flex: 1; padding: 16px; border: none; border-radius: 16px; font-size: 16px; font-weight: 500; cursor: pointer; }
+    .confirm-btn.cancel { background: #1f2937; color: #fff; }
+    .confirm-btn.delete { background: #dc2626; color: #fff; }
+    
+    .quick-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .quick-tag { padding: 8px 16px; background: #1f2937; border: 1px solid #374151; border-radius: 20px; color: #fff; font-size: 14px; cursor: pointer; }
+    .quick-tag:active { background: #374151; }
+    .quick-tag.selected { background: #f59e0b; color: #000; border-color: #f59e0b; }
+    .form-input-with-icon { position: relative; }
+    .form-input-with-icon .form-input { padding-left: 32px; }
+    .form-input-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #fbbf24; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <div class="status-bar"></div>
+  
+  <header class="header">
+    <div>
+      <h1 class="header-title">Expense Tracker</h1>
+      <p class="header-subtitle">จัดการค่าใช้จ่ายของคุณ</p>
+    </div>
+    <button class="add-btn" id="headerAddBtn">
+      <svg viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+    </button>
+  </header>
+
+  <main class="main">
+    <!-- Monthly Tab -->
+    <div id="monthlyTab">
+      <div class="month-selector">
+        <div class="month-list" id="monthList"></div>
+      </div>
+      <div class="summary">
+        <p class="summary-label">สรุปรายจ่าย <span id="currentMonthName">พ.ย.</span></p>
+        <p class="summary-amount" id="monthlyTotal">฿0.00</p>
+      </div>
+      <div class="expense-list" id="expenseList"></div>
+      <button class="add-item-btn" id="addExpenseBtn">
+        <svg viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+        เพิ่มรายการ
+      </button>
+    </div>
+
+    <!-- Installments Tab -->
+    <div id="installmentsTab" class="hidden"></div>
+
+    <!-- Trip Tab -->
+    <div id="tripTab" class="hidden"></div>
+
+    <!-- Cards Tab -->
+    <div id="cardsTab" class="hidden"></div>
+  </main>
+
+  <nav class="bottom-nav">
+    <div class="nav-container">
+      <button class="nav-btn active" data-tab="monthly">
+        <div class="nav-icon">📊</div>
+        <div class="nav-label">รายเดือน</div>
+        <div class="nav-indicator"></div>
+      </button>
+      <button class="nav-btn" data-tab="installments">
+        <div class="nav-icon">📅</div>
+        <div class="nav-label">ผ่อน</div>
+      </button>
+      <button class="nav-btn" data-tab="trip">
+        <div class="nav-icon">✈️</div>
+        <div class="nav-label">ทริป</div>
+      </button>
+      <button class="nav-btn" data-tab="cards">
+        <div class="nav-icon">💳</div>
+        <div class="nav-label">บัตร</div>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Add Modal -->
+  <div class="modal-overlay hidden" id="addModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">เพิ่มรายการใหม่</h3>
+        <button class="modal-close" id="closeModal">
+          <svg viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal-overlay center hidden" id="deleteModal">
+    <div class="modal center">
+      <h3 class="modal-title">ยืนยันการลบ</h3>
+      <p class="confirm-text" id="deleteText">ต้องการลบรายการนี้?</p>
+      <div class="confirm-buttons">
+        <button class="confirm-btn cancel" id="cancelDelete">ยกเลิก</button>
+        <button class="confirm-btn delete" id="confirmDelete">ลบ</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Data
+    const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    
+    const defaultItems = [
+      { id: 1, name: 'K-PLUS', amount: 0 },
+      { id: 2, name: 'SCB-SPC', amount: 0 },
+      { id: 3, name: 'SCB-UP2', amount: 0 },
+      { id: 4, name: 'Tiktok', amount: 0 },
+      { id: 5, name: 'Shopee', amount: 0 },
+      { id: 6, name: 'Krungsri-Auto (ผ่อนรถ)', amount: 0 },
+      { id: 7, name: 'NT-Net (อินเทอร์เน็ต)', amount: 0 },
+      { id: 8, name: 'UOB-WORLD (บัตรเครดิต)', amount: 0 },
+      { id: 9, name: 'UOB-CLASH PLUSH (ผ่อน)', amount: 0 },
+      { id: 10, name: 'Spotify', amount: 0 }
+    ];
+
+    function createInitialData() {
+      const monthlyExpenses = {};
+      MONTHS.forEach((m, i) => {
+        monthlyExpenses[i] = { name: m, items: JSON.parse(JSON.stringify(defaultItems)) };
+      });
+      // Pre-fill November
+      monthlyExpenses[10].items = [
+        { id: 1, name: 'K-PLUS', amount: 0 },
+        { id: 2, name: 'SCB-SPC', amount: 0 },
+        { id: 3, name: 'SCB-UP2', amount: 664.60 },
+        { id: 4, name: 'Tiktok', amount: 0 },
+        { id: 5, name: 'Shopee', amount: 0 },
+        { id: 6, name: 'Krungsri-Auto (ผ่อนรถ)', amount: 6385.00 },
+        { id: 7, name: 'NT-Net (อินเทอร์เน็ต)', amount: 319.93 },
+        { id: 8, name: 'UOB-WORLD (บัตรเครดิต)', amount: 1626 },
+        { id: 9, name: 'UOB-CLASH PLUSH (ผ่อน)', amount: 1291.67 },
+        { id: 10, name: 'Spotify', amount: 41.5 },
+        { id: 11, name: 'Youtube', amount: 99 },
+        { id: 12, name: 'Claude Code', amount: 699 }
+      ];
+      return {
+        monthlyExpenses,
+        installments: [
+          { id: 'jp-ticket', name: 'ค่าผ่อนตั๋ว JP', monthlyAmount: 2164, payments: [
+            { month: 'ต.ค.', paid: true }, { month: 'พ.ย.', paid: false }, { month: 'ธ.ค.', paid: false },
+            { month: 'ม.ค.', paid: false }, { month: 'ก.พ.', paid: false }, { month: 'มี.ค.', paid: false }
+          ]},
+          { id: 'kbank-loan', name: 'กู้เงิน KBANK 6 เดือน', monthlyAmount: 857.83, payments: [
+            { month: 'ก.ค.', paid: true }, { month: 'ส.ค.', paid: true }, { month: 'ก.ย.', paid: true },
+            { month: 'ต.ค.', paid: true }, { month: 'พ.ย.', paid: false }, { month: 'ธ.ค.', paid: false }
+          ]}
+        ],
+        trips: [
+          { id: 'japan-69', name: 'ทริปญี่ปุ่น', date: 'ม.ค. 69', items: [
+            { id: 1, name: 'ตั๋วเครื่องบิน', amount: 12982 },
+            { id: 2, name: 'ที่พัก (ต่อคน)', amount: 4868.53 },
+            { id: 3, name: 'ประกันเดินทาง', amount: 0, note: 'ยังไม่ซื้อ' },
+            { id: 4, name: 'eSIM', amount: 350, note: 'Vacay' }
+          ]}
+        ],
+        cards: [
+          { id: 'kbank', name: 'KBANK', month: 'พ.ย.', items: [
+            { id: 1, name: '7-Eleven', amount: 99, date: 27 },
+            { id: 2, name: 'หนี้เก่า', amount: 857.83 },
+            { id: 3, name: 'เน็ตทรู', amount: 555.33 }
+          ]}
+        ]
+      };
+    }
+
+    // Load or init data
+    let data;
+    try {
+      const saved = localStorage.getItem('expenseDataV5');
+      data = saved ? JSON.parse(saved) : createInitialData();
+      if (!data.monthlyExpenses) data = createInitialData();
+      // Migrate old data
+      if (!data.trips) data.trips = createInitialData().trips;
+      if (!data.cards) data.cards = createInitialData().cards;
+    } catch(e) { data = createInitialData(); }
+
+    let currentTab = 'monthly';
+    let selectedMonth = 10;
+    let deleteTarget = null;
+
+    function saveData() {
+      localStorage.setItem('expenseDataV5', JSON.stringify(data));
+    }
+
+    function formatNumber(num) {
+      if (!num || num === 0) return '-';
+      return num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function getMonthTotal(monthIndex) {
+      const items = data.monthlyExpenses[monthIndex]?.items || [];
+      return items.reduce((sum, item) => sum + (item.amount || 0), 0);
+    }
+
+    // Render functions
+    function renderMonthList() {
+      const container = document.getElementById('monthList');
+      container.innerHTML = MONTHS.map((month, index) => {
+        const total = getMonthTotal(index);
+        let cls = 'month-btn';
+        if (index === selectedMonth) cls += ' active';
+        else if (total > 0) cls += ' has-data';
+        return `<button class="${cls}" data-month="${index}">
+          <div>${month}</div>
+          ${total > 0 && index !== selectedMonth ? `<div class="month-btn-sub">${(total/1000).toFixed(1)}k</div>` : ''}
+        </button>`;
+      }).join('');
+      
+      container.querySelectorAll('.month-btn').forEach(btn => {
+        btn.onclick = () => {
+          selectedMonth = parseInt(btn.dataset.month);
+          renderMonthlyTab();
+        };
+      });
+    }
+
+    function renderExpenseList() {
+      const container = document.getElementById('expenseList');
+      const items = data.monthlyExpenses[selectedMonth]?.items || [];
+      container.innerHTML = items.map(item => `
+        <div class="expense-item">
+          <div class="expense-item-left">
+            <button class="delete-btn" data-id="${item.id}" data-type="expense">
+              <svg viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+            <span class="expense-item-name">${item.name}</span>
+          </div>
+          <input type="number" inputmode="decimal" class="expense-input" data-id="${item.id}" value="${item.amount || ''}" placeholder="0.00">
+        </div>
+      `).join('');
+
+      container.querySelectorAll('.expense-input').forEach(input => {
+        input.oninput = (e) => {
+          const id = parseInt(e.target.dataset.id);
+          const item = data.monthlyExpenses[selectedMonth].items.find(i => i.id === id);
+          if (item) {
+            item.amount = parseFloat(e.target.value) || 0;
+            saveData();
+            updateMonthlyTotal();
+            renderMonthList();
+          }
+        };
+      });
+
+      container.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.onclick = () => {
+          const id = parseInt(btn.dataset.id);
+          const item = data.monthlyExpenses[selectedMonth].items.find(i => i.id === id);
+          if (item) {
+            deleteTarget = { type: 'expense', id, name: item.name };
+            document.getElementById('deleteText').textContent = `ต้องการลบ "${item.name}" ?`;
+            document.getElementById('deleteModal').classList.remove('hidden');
+          }
+        };
+      });
+    }
+
+    function updateMonthlyTotal() {
+      const total = getMonthTotal(selectedMonth);
+      document.getElementById('monthlyTotal').textContent = '฿' + formatNumber(total);
+      document.getElementById('currentMonthName').textContent = MONTHS[selectedMonth];
+    }
+
+    function renderMonthlyTab() {
+      renderMonthList();
+      renderExpenseList();
+      updateMonthlyTotal();
+    }
+
+    function renderInstallmentsTab() {
+      const container = document.getElementById('installmentsTab');
+      container.innerHTML = data.installments.map(inst => {
+        const paidCount = inst.payments.filter(p => p.paid).length;
+        const totalCount = inst.payments.length;
+        return `
+          <div class="installment-section">
+            <div class="installment-header">
+              <div class="installment-info">
+                <h3 class="installment-title">${inst.name}</h3>
+                <p class="installment-subtitle">฿${formatNumber(inst.monthlyAmount)}/เดือน</p>
+              </div>
+              <div class="installment-right">
+                <div class="progress-box">
+                  <span class="progress-text">${paidCount}/${totalCount}</span>
+                  <p class="progress-label">งวด</p>
+                </div>
+                <button class="delete-btn" data-id="${inst.id}" data-type="installment">
+                  <svg viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+            ${inst.payments.map((p, idx) => `
+              <div class="check-item ${p.paid ? 'checked' : ''}" data-inst="${inst.id}" data-idx="${idx}">
+                <div class="check-item-left">
+                  <div class="checkbox ${p.paid ? 'checked' : ''}">${p.paid ? '<svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>' : ''}</div>
+                  <span class="check-item-text">${p.month} (${idx+1}/${totalCount})</span>
+                </div>
+                <span class="check-item-amount">฿${formatNumber(inst.monthlyAmount)}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }).join('') + `
+        <button class="add-item-btn" id="addInstallmentBtn">
+          <svg viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+          เพิ่มรายการผ่อน
+        </button>
+      `;
+
+      container.querySelectorAll('.check-item').forEach(item => {
+        item.onclick = () => {
+          const instId = item.dataset.inst;
+          const idx = parseInt(item.dataset.idx);
+          const inst = data.installments.find(i => i.id === instId);
+          if (inst) {
+            inst.payments[idx].paid = !inst.payments[idx].paid;
+            saveData();
+            renderInstallmentsTab();
+          }
+        };
+      });
+
+      container.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const inst = data.installments.find(i => i.id === id);
+          if (inst) {
+            deleteTarget = { type: 'installment', id, name: inst.name };
+            document.getElementById('deleteText').textContent = `ต้องการลบ "${inst.name}" ?`;
+            document.getElementById('deleteModal').classList.remove('hidden');
+          }
+        };
+      });
+
+      document.getElementById('addInstallmentBtn')?.addEventListener('click', () => showAddModal('installment'));
+    }
+
+    function renderTripTab() {
+      const container = document.getElementById('tripTab');
+      if (!data.trips) data.trips = [];
+      
+      container.innerHTML = data.trips.map(trip => {
+        const total = trip.items.reduce((sum, item) => sum + (item.amount || 0), 0);
+        return `
+          <div class="card-section" data-trip="${trip.id}">
+            <div class="card-header">
+              <div class="card-header-left">
+                <h3 class="card-title">${trip.name} (${trip.date})</h3>
+              </div>
+              <button class="delete-btn" data-id="${trip.id}" data-type="trip">
+                <svg viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+            ${trip.items.map(item => `
+              <div class="card-row">
+                <div class="card-row-left">
+                  <span class="card-row-name">${item.name}</span>
+                  ${item.note ? `<span class="card-row-note">${item.note}</span>` : ''}
+                </div>
+                <div class="card-row-right">
+                  <input type="number" inputmode="decimal" class="card-input" data-trip="${trip.id}" data-item="${item.id}" value="${item.amount || ''}" placeholder="0">
+                  <button class="delete-btn small" data-trip="${trip.id}" data-item="${item.id}" data-type="trip-item">
+                    <svg viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+            <div class="card-total">
+              <span class="card-total-label">รวมค่าใช้จ่าย</span>
+              <span class="card-total-amount">฿${formatNumber(total)}</span>
+            </div>
+            <button class="add-item-btn small" data-trip="${trip.id}">+ เพิ่มรายการในทริปนี้</button>
+          </div>
+        `;
+      }).join('') + `
+        <button class="add-item-btn" id="addTripBtn">+ สร้างทริปใหม่</button>
+      `;
+
+      // Event listeners
+      container.querySelectorAll('.card-input').forEach(input => {
+        input.oninput = (e) => {
+          const tripId = e.target.dataset.trip;
+          const itemId = parseInt(e.target.dataset.item);
+          const trip = data.trips.find(t => t.id === tripId);
+          if (trip) {
+            const item = trip.items.find(i => i.id === itemId);
+            if (item) {
+              item.amount = parseFloat(e.target.value) || 0;
+              saveData();
+              renderTripTab();
+            }
+          }
+        };
+      });
+
+      container.querySelectorAll('.delete-btn[data-type="trip"]').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const trip = data.trips.find(t => t.id === id);
+          if (trip) {
+            deleteTarget = { type: 'trip', id, name: trip.name };
+            document.getElementById('deleteText').textContent = `ต้องการลบ "${trip.name}" ?`;
+            document.getElementById('deleteModal').classList.remove('hidden');
+          }
+        };
+      });
+
+      container.querySelectorAll('.delete-btn[data-type="trip-item"]').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const tripId = btn.dataset.trip;
+          const itemId = parseInt(btn.dataset.item);
+          const trip = data.trips.find(t => t.id === tripId);
+          if (trip) {
+            const item = trip.items.find(i => i.id === itemId);
+            if (item) {
+              deleteTarget = { type: 'trip-item', tripId, itemId, name: item.name };
+              document.getElementById('deleteText').textContent = `ต้องการลบ "${item.name}" ?`;
+              document.getElementById('deleteModal').classList.remove('hidden');
+            }
+          }
+        };
+      });
+
+      container.querySelectorAll('.add-item-btn.small').forEach(btn => {
+        btn.onclick = () => showAddModal('trip-item', btn.dataset.trip);
+      });
+
+      document.getElementById('addTripBtn')?.addEventListener('click', () => showAddModal('trip'));
+    }
+
+    function renderCardsTab() {
+      const container = document.getElementById('cardsTab');
+      if (!data.cards) data.cards = [];
+      
+      container.innerHTML = data.cards.map(card => {
+        const total = card.items.reduce((sum, item) => sum + (item.amount || 0), 0);
+        return `
+          <div class="card-section" data-card="${card.id}">
+            <div class="card-header">
+              <div class="card-header-left">
+                <h3 class="card-title">${card.name}</h3>
+                <span class="card-subtitle">ยอดใช้จ่ายเดือน ${card.month}</span>
+              </div>
+              <div class="card-header-right">
+                <span class="card-header-total">฿${formatNumber(total)}</span>
+                <button class="delete-btn" data-id="${card.id}" data-type="card">
+                  <svg viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+            ${card.items.map(item => `
+              <div class="card-row">
+                <div class="card-row-left">
+                  ${item.date ? `<span class="card-row-date"><span class="date-label">${item.monthIdx !== undefined ? MONTHS[item.monthIdx] : card.month}</span><span class="date-num">${item.date}</span></span>` : '<span class="card-row-date empty"></span>'}
+                  <span class="card-row-name">${item.name}</span>
+                </div>
+                <div class="card-row-right">
+                  <input type="number" inputmode="decimal" class="card-input" data-card="${card.id}" data-item="${item.id}" value="${item.amount || ''}" placeholder="0">
+                  <button class="delete-btn small" data-card="${card.id}" data-item="${item.id}" data-type="card-item">
+                    <svg viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+            <button class="add-item-btn small" data-card="${card.id}">+ เพิ่มรายการใน ${card.name}</button>
+          </div>
+        `;
+      }).join('') + `
+        <button class="add-item-btn" id="addCardBtn">+ เพิ่มบัตรใบใหม่</button>
+      `;
+
+      // Event listeners
+      container.querySelectorAll('.card-input').forEach(input => {
+        input.oninput = (e) => {
+          const cardId = e.target.dataset.card;
+          const itemId = parseInt(e.target.dataset.item);
+          const card = data.cards.find(c => c.id === cardId);
+          if (card) {
+            const item = card.items.find(i => i.id === itemId);
+            if (item) {
+              item.amount = parseFloat(e.target.value) || 0;
+              saveData();
+              renderCardsTab();
+            }
+          }
+        };
+      });
+
+      container.querySelectorAll('.delete-btn[data-type="card"]').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const card = data.cards.find(c => c.id === id);
+          if (card) {
+            deleteTarget = { type: 'card', id, name: card.name };
+            document.getElementById('deleteText').textContent = `ต้องการลบ "${card.name}" ?`;
+            document.getElementById('deleteModal').classList.remove('hidden');
+          }
+        };
+      });
+
+      container.querySelectorAll('.delete-btn[data-type="card-item"]').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const cardId = btn.dataset.card;
+          const itemId = parseInt(btn.dataset.item);
+          const card = data.cards.find(c => c.id === cardId);
+          if (card) {
+            const item = card.items.find(i => i.id === itemId);
+            if (item) {
+              deleteTarget = { type: 'card-item', cardId, itemId, name: item.name };
+              document.getElementById('deleteText').textContent = `ต้องการลบ "${item.name}" ?`;
+              document.getElementById('deleteModal').classList.remove('hidden');
+            }
+          }
+        };
+      });
+
+      container.querySelectorAll('.add-item-btn.small').forEach(btn => {
+        btn.onclick = () => showAddModal('card-item', btn.dataset.card);
+      });
+
+      document.getElementById('addCardBtn')?.addEventListener('click', () => showAddModal('card'));
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        const isActive = btn.dataset.tab === tab;
+        btn.classList.toggle('active', isActive);
+        const indicator = btn.querySelector('.nav-indicator');
+        if (isActive && !indicator) {
+          btn.insertAdjacentHTML('beforeend', '<div class="nav-indicator"></div>');
+        } else if (!isActive && indicator) {
+          indicator.remove();
+        }
+      });
+
+      document.getElementById('monthlyTab').classList.toggle('hidden', tab !== 'monthly');
+      document.getElementById('installmentsTab').classList.toggle('hidden', tab !== 'installments');
+      document.getElementById('tripTab').classList.toggle('hidden', tab !== 'trip');
+      document.getElementById('cardsTab').classList.toggle('hidden', tab !== 'cards');
+
+      if (tab === 'monthly') renderMonthlyTab();
+      else if (tab === 'installments') renderInstallmentsTab();
+      else if (tab === 'trip') renderTripTab();
+      else if (tab === 'cards') renderCardsTab();
+    }
+
+    // Modal functions
+    function showAddModal(type, parentId) {
+      const modal = document.getElementById('addModal');
+      const title = document.getElementById('modalTitle');
+      const content = document.getElementById('modalContent');
+
+      if (!type) {
+        title.textContent = 'เพิ่มรายการใหม่';
+        content.innerHTML = `
+          <div class="modal-grid">
+            <button class="modal-option" data-add="monthly">
+              <div class="modal-option-icon">📊</div>
+              <div class="modal-option-text">รายจ่ายรายเดือน</div>
+            </button>
+            <button class="modal-option" data-add="installment">
+              <div class="modal-option-icon">📅</div>
+              <div class="modal-option-text">ค่าผ่อน</div>
+            </button>
+          </div>
+        `;
+        content.querySelectorAll('.modal-option').forEach(btn => {
+          btn.onclick = () => showAddModal(btn.dataset.add);
+        });
+      } else if (type === 'monthly') {
+        title.textContent = 'เพิ่มรายจ่ายรายเดือน';
+        content.innerHTML = `
+          <div class="form-group">
+            <label class="form-label">ชื่อรายการ</label>
+            <input type="text" class="form-input" id="newItemName" placeholder="เช่น Netflix, Youtube...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">จำนวนเงิน (บาท)</label>
+            <input type="number" inputmode="decimal" class="form-input" id="newItemAmount" placeholder="0.00">
+          </div>
+          <p class="form-hint">จะเพิ่มใน ${MONTHS[selectedMonth]}</p>
+          <button class="form-submit" id="submitNewItem">เพิ่มรายการ</button>
+        `;
+        document.getElementById('submitNewItem').onclick = () => {
+          const name = document.getElementById('newItemName').value.trim();
+          const amount = parseFloat(document.getElementById('newItemAmount').value) || 0;
+          if (name) {
+            data.monthlyExpenses[selectedMonth].items.push({ id: Date.now(), name, amount });
+            saveData();
+            closeModal();
+            renderMonthlyTab();
+          }
+        };
+      } else if (type === 'installment') {
+        title.textContent = 'เพิ่มรายการผ่อน';
+        content.innerHTML = `
+          <div class="form-group">
+            <label class="form-label">ชื่อรายการผ่อน</label>
+            <input type="text" class="form-input" id="newInstName" placeholder="เช่น ผ่อนมือถือ...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ยอดต่อเดือน (บาท)</label>
+            <input type="number" inputmode="decimal" class="form-input" id="newInstAmount" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">จำนวนงวด</label>
+            <select class="form-input" id="newInstMonths">
+              <option value="3">3 เดือน</option>
+              <option value="4">4 เดือน</option>
+              <option value="6" selected>6 เดือน</option>
+              <option value="10">10 เดือน</option>
+              <option value="12">12 เดือน</option>
+              <option value="18">18 เดือน</option>
+              <option value="24">24 เดือน</option>
+            </select>
+          </div>
+          <button class="form-submit" id="submitNewInst">เพิ่มรายการผ่อน</button>
+        `;
+        document.getElementById('submitNewInst').onclick = () => {
+          const name = document.getElementById('newInstName').value.trim();
+          const amount = parseFloat(document.getElementById('newInstAmount').value) || 0;
+          const months = parseInt(document.getElementById('newInstMonths').value);
+          if (name && amount) {
+            const payments = [];
+            const startMonth = new Date().getMonth();
+            for (let i = 0; i < months; i++) {
+              payments.push({ month: MONTHS[(startMonth + i) % 12], paid: false });
+            }
+            data.installments.push({ id: 'inst-' + Date.now(), name, monthlyAmount: amount, payments });
+            saveData();
+            closeModal();
+            renderInstallmentsTab();
+          }
+        };
+      } else if (type === 'trip') {
+        title.textContent = 'สร้างทริปใหม่';
+        content.innerHTML = `
+          <div class="form-group">
+            <label class="form-label">ชื่อทริป</label>
+            <input type="text" class="form-input" id="newTripName" placeholder="เช่น ทริปญี่ปุ่น, ทริปเกาหลี...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">วันที่/เดือน</label>
+            <input type="text" class="form-input" id="newTripDate" placeholder="เช่น ม.ค. 69">
+          </div>
+          <button class="form-submit" id="submitNewTrip">สร้างทริป</button>
+        `;
+        document.getElementById('submitNewTrip').onclick = () => {
+          const name = document.getElementById('newTripName').value.trim();
+          const date = document.getElementById('newTripDate').value.trim();
+          if (name) {
+            if (!data.trips) data.trips = [];
+            data.trips.push({ id: 'trip-' + Date.now(), name, date: date || '-', items: [] });
+            saveData();
+            closeModal();
+            renderTripTab();
+          }
+        };
+      } else if (type === 'trip-item') {
+        title.textContent = 'เพิ่มรายการในทริป';
+        content.innerHTML = `
+          <div class="form-group">
+            <label class="form-label">ชื่อรายการ</label>
+            <input type="text" class="form-input" id="newTripItemName" placeholder="เช่น ตั๋วเครื่องบิน, ที่พัก...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">จำนวนเงิน (บาท)</label>
+            <input type="number" inputmode="decimal" class="form-input" id="newTripItemAmount" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">หมายเหตุ (ถ้ามี)</label>
+            <input type="text" class="form-input" id="newTripItemNote" placeholder="เช่น ยังไม่ซื้อ">
+          </div>
+          <button class="form-submit" id="submitNewTripItem">เพิ่มรายการ</button>
+        `;
+        document.getElementById('submitNewTripItem').onclick = () => {
+          const name = document.getElementById('newTripItemName').value.trim();
+          const amount = parseFloat(document.getElementById('newTripItemAmount').value) || 0;
+          const note = document.getElementById('newTripItemNote').value.trim();
+          if (name) {
+            const trip = data.trips.find(t => t.id === parentId);
+            if (trip) {
+              trip.items.push({ id: Date.now(), name, amount, note: note || null });
+              saveData();
+              closeModal();
+              renderTripTab();
+            }
+          }
+        };
+      } else if (type === 'card') {
+        title.textContent = 'เพิ่มบัตรใบใหม่';
+        content.innerHTML = `
+          <div class="form-group">
+            <label class="form-label">ชื่อบัตร</label>
+            <input type="text" class="form-input" id="newCardName" placeholder="เช่น KBANK, SCB, KTC...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">เดือนที่ต้องจ่าย</label>
+            <select class="form-input" id="newCardMonth">
+              ${MONTHS.map((m, i) => `<option value="${m}" ${i === new Date().getMonth() ? 'selected' : ''}>${m}</option>`).join('')}
+            </select>
+          </div>
+          <button class="form-submit" id="submitNewCard">เพิ่มบัตร</button>
+        `;
+        document.getElementById('submitNewCard').onclick = () => {
+          const name = document.getElementById('newCardName').value.trim();
+          const month = document.getElementById('newCardMonth').value;
+          if (name) {
+            if (!data.cards) data.cards = [];
+            data.cards.push({ id: 'card-' + Date.now(), name, month, items: [] });
+            saveData();
+            closeModal();
+            renderCardsTab();
+          }
+        };
+      } else if (type === 'card-item') {
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0];
+        title.textContent = 'เพิ่มรายการในบัตร';
+        content.innerHTML = `
+          <div class="form-group">
+            <label class="form-label">วันที่</label>
+            <input type="date" class="form-input" id="newCardItemDate" value="${dateStr}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ชื่อรายการ</label>
+            <input type="text" class="form-input" id="newCardItemName" placeholder="เช่น ค่าเน็ต, ค่าข้าว">
+            <div class="quick-tags" id="quickTags">
+              <button type="button" class="quick-tag" data-name="7-Eleven">7-Eleven</button>
+              <button type="button" class="quick-tag" data-name="Grab">Grab</button>
+              <button type="button" class="quick-tag" data-name="Top 100">Top 100</button>
+              <button type="button" class="quick-tag" data-name="Lotus's">Lotus's</button>
+              <button type="button" class="quick-tag" data-name="Shopee">Shopee</button>
+              <button type="button" class="quick-tag" data-name="Lazada">Lazada</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">จำนวนเงิน</label>
+            <div class="form-input-with-icon">
+              <span class="form-input-icon">฿</span>
+              <input type="number" inputmode="decimal" class="form-input" id="newCardItemAmount" placeholder="0.00" style="padding-left: 36px;">
+            </div>
+          </div>
+          <button class="form-submit" id="submitNewCardItem">บันทึกรายการ</button>
+        `;
+        
+        // Quick tags click
+        document.querySelectorAll('.quick-tag').forEach(tag => {
+          tag.onclick = () => {
+            document.querySelectorAll('.quick-tag').forEach(t => t.classList.remove('selected'));
+            tag.classList.add('selected');
+            document.getElementById('newCardItemName').value = tag.dataset.name;
+          };
+        });
+        
+        document.getElementById('submitNewCardItem').onclick = () => {
+          const name = document.getElementById('newCardItemName').value.trim();
+          const amount = parseFloat(document.getElementById('newCardItemAmount').value) || 0;
+          const dateVal = document.getElementById('newCardItemDate').value;
+          const dateObj = dateVal ? new Date(dateVal) : null;
+          const day = dateObj ? dateObj.getDate() : null;
+          const monthIdx = dateObj ? dateObj.getMonth() : null;
+          if (name) {
+            const card = data.cards.find(c => c.id === parentId);
+            if (card) {
+              card.items.push({ id: Date.now(), name, amount, date: day, monthIdx });
+              saveData();
+              closeModal();
+              renderCardsTab();
+            }
+          }
+        };
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('addModal').classList.add('hidden');
+    }
+
+    // Event listeners
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.onclick = () => switchTab(btn.dataset.tab);
+    });
+
+    document.getElementById('headerAddBtn').onclick = () => showAddModal(null);
+    document.getElementById('addExpenseBtn').onclick = () => showAddModal('monthly');
+    document.getElementById('closeModal').onclick = closeModal;
+    document.getElementById('addModal').onclick = (e) => {
+      if (e.target.id === 'addModal') closeModal();
+    };
+
+    document.getElementById('cancelDelete').onclick = () => {
+      document.getElementById('deleteModal').classList.add('hidden');
+      deleteTarget = null;
+    };
+
+    document.getElementById('confirmDelete').onclick = () => {
+      if (deleteTarget) {
+        if (deleteTarget.type === 'expense') {
+          data.monthlyExpenses[selectedMonth].items = data.monthlyExpenses[selectedMonth].items.filter(i => i.id !== deleteTarget.id);
+          saveData();
+          renderMonthlyTab();
+        } else if (deleteTarget.type === 'installment') {
+          data.installments = data.installments.filter(i => i.id !== deleteTarget.id);
+          saveData();
+          renderInstallmentsTab();
+        } else if (deleteTarget.type === 'trip') {
+          data.trips = data.trips.filter(t => t.id !== deleteTarget.id);
+          saveData();
+          renderTripTab();
+        } else if (deleteTarget.type === 'trip-item') {
+          const trip = data.trips.find(t => t.id === deleteTarget.tripId);
+          if (trip) {
+            trip.items = trip.items.filter(i => i.id !== deleteTarget.itemId);
+            saveData();
+            renderTripTab();
+          }
+        } else if (deleteTarget.type === 'card') {
+          data.cards = data.cards.filter(c => c.id !== deleteTarget.id);
+          saveData();
+          renderCardsTab();
+        } else if (deleteTarget.type === 'card-item') {
+          const card = data.cards.find(c => c.id === deleteTarget.cardId);
+          if (card) {
+            card.items = card.items.filter(i => i.id !== deleteTarget.itemId);
+            saveData();
+            renderCardsTab();
+          }
+        }
+      }
+      document.getElementById('deleteModal').classList.add('hidden');
+      deleteTarget = null;
+    };
+
+    // Init
+    renderMonthlyTab();
+  </script>
+</body>
+</html>
