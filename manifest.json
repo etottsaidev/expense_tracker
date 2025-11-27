@@ -3,6 +3,7 @@
   "short_name": "Expense",
   "description": "จัดการค่าใช้จ่ายของคุณ",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
